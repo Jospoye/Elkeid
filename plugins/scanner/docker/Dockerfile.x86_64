@@ -24,8 +24,26 @@ RUN echo "===== 开始编译 libiconv.a/libcharset.a（musl 格式） =====" \
     && rm -rf /tmp/libiconv-1.17.tar.gz /tmp/libiconv-1.17 /tmp/libiconv_musl \
     && echo "===== libiconv.a/libcharset.a 编译完成 ====="
 
-# 3. 修正全局RUSTFLAGS：链接ucontext库+指定库路径+静态编译（核心修复）
-ENV RUSTFLAGS="-L /LibClamavDocker/lib/ -C target-feature=+crt-static -l ucontext -l c"
+# 3. 新增：编译musl格式的libucontext静态库（核心解决ucontext缺失）
+RUN echo "===== 开始编译 libucontext.a（musl 格式） =====" \
+    # 下载适配musl的libucontext源码（v1.2稳定版）
+    && wget https://github.com/kaniini/libucontext/archive/refs/tags/v1.2.tar.gz -O /tmp/libucontext-1.2.tar.gz \
+    # 解压源码
+    && tar -zxvf /tmp/libucontext-1.2.tar.gz -C /tmp \
+    # 进入源码目录
+    && cd /tmp/libucontext-1.2 \
+    # 指定musl编译器（与项目编译一致）
+    && export CC=${TARGET_ARCH}-linux-musl-gcc \
+    && export CXX=${TARGET_ARCH}-linux-musl-c++ \
+    # 编译静态库（-fPIC适配静态编译，-static确保生成静态库）
+    && make -j4 CC=$CC CFLAGS="-fPIC -static" \
+    # 复制到LibClamavDocker/lib（与iconv库同目录）
+    && cp /tmp/libucontext-1.2/libucontext.a /LibClamavDocker/lib/ \
+    # 清理临时文件，减小镜像体积
+    && rm -rf /tmp/libucontext-1.2.tar.gz /tmp/libucontext-1.2 \
+    && echo "===== libucontext.a 编译完成 ====="
+
+
 
 RUN rm -rf clamav clamav-mussels-cookbook lib include
 RUN mv /LibClamavDocker/clamav /Elkeid/plugins/scanner/.
@@ -34,6 +52,11 @@ RUN mv /LibClamavDocker/lib /Elkeid/plugins/scanner/.
 RUN mv /LibClamavDocker/include /Elkeid/plugins/scanner/.
 
 RUN rustup target add x86_64-unknown-linux-musl
+
+# 6. 全局RUSTFLAGS配置（关键：指定库路径+链接ucontext+静态编译）
+# 注意：库路径改为移动后的项目目录 /Elkeid/plugins/scanner/lib/
+ENV RUSTFLAGS="-L /Elkeid/plugins/scanner/lib/ -C target-feature=+crt-static -l ucontext -l c"
+
 # RUN CC="x86_64-linux-musl-gcc" CXX="x86_64-linux-musl-c++" RUSTFLAGS='-C target-feature=+crt-static' cargo build --release --bin scanner_plugin --target x86_64-unknown-linux-musl
 RUN CC="x86_64-linux-musl-gcc" CXX="x86_64-linux-musl-c++" cargo build --release --bin scanner_plugin --target x86_64-unknown-linux-musl
 
