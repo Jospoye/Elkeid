@@ -3,6 +3,30 @@ FROM kulukami/libclamav_icm_x86_64 AS scanner_compiler
 ADD . /Elkeid
 WORKDIR /Elkeid/plugins/scanner
 
+# 新增1：提前定义TARGET_ARCH环境变量（解决脚本变量未定义问题）
+ENV TARGET_ARCH=x86_64
+
+# 新增2：嵌入你的libiconv手动编译脚本（无需修改脚本本身，直接粘贴）
+RUN echo "===== 开始编译 libiconv.a/libcharset.a（musl 格式） =====" \
+    && wget https://ftp.gnu.org/pub/gnu/libiconv/libiconv-1.17.tar.gz -O /tmp/libiconv-1.17.tar.gz \
+    && tar -zxvf /tmp/libiconv-1.17.tar.gz -C /tmp \
+    && cd /tmp/libiconv-1.17 \
+    && export CC=${TARGET_ARCH}-linux-musl-gcc \
+    && export CXX=${TARGET_ARCH}-linux-musl-c++ \
+    && ./configure \
+      --prefix=/tmp/libiconv_musl \
+      --enable-static=yes \
+      --enable-shared=no \
+      --disable-dependency-tracking \
+    && make -j4 && make install \
+    && cp /tmp/libiconv_musl/lib/libiconv.a /LibClamavDocker/lib/ \
+    && cp /tmp/libiconv_musl/lib/libcharset.a /LibClamavDocker/lib/ \
+    && rm -rf /tmp/libiconv-1.17.tar.gz /tmp/libiconv-1.17 /tmp/libiconv_musl \
+    && echo "===== libiconv.a/libcharset.a 编译完成 ====="
+
+# 新增3：指定Rust编译器查找静态库的路径（解决编译器找不到libiconv的问题）
+ENV RUSTFLAGS="-L /LibClamavDocker/lib/ ${RUSTFLAGS}"
+
 RUN rm -rf clamav clamav-mussels-cookbook lib include
 RUN mv /LibClamavDocker/clamav /Elkeid/plugins/scanner/.
 RUN mv /LibClamavDocker/clamav-mussels-cookbook /Elkeid/plugins/scanner/.
