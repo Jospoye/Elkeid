@@ -10,6 +10,8 @@ edition = "2021"
 bindgen = "0.59"
 
 [dependencies]
+base64ct = "=1.7.1"
+home = "=0.5.11"
 
 plugins = { path = "../lib/rust" }
 
