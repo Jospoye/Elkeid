@@ -33,7 +33,7 @@ RUN echo "===== 开始编译 libucontext.a（musl 格式） =====" \
     && wget https://github.com/kaniini/libucontext/archive/refs/tags/v1.2.tar.gz -O /tmp/libucontext-1.2.tar.gz \
     && tar -zxvf /tmp/libucontext-1.2.tar.gz -C /tmp \
     && cd /tmp/libucontext-1.2 \
-    && make -j4 CC=$CC CFLAGS="-fPIC -static" \
+    && && make CC="$CC" CFLAGS="-fPIC -static" -j4 \
     && cp /tmp/libucontext-1.2/libucontext.a /LibClamavDocker/lib/ \
     && rm -rf /tmp/libucontext-1.2.tar.gz /tmp/libucontext-1.2 \
     && echo "===== libucontext.a 编译完成 ====="
