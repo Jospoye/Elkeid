@@ -55,10 +55,14 @@ RUN rustup target add x86_64-unknown-linux-musl
 
 # 6. 全局RUSTFLAGS配置（关键：指定库路径+链接ucontext+静态编译）
 # 注意：库路径改为移动后的项目目录 /Elkeid/plugins/scanner/lib/
-ENV RUSTFLAGS="-L /Elkeid/plugins/scanner/lib/ -C target-feature=+crt-static -l ucontext -l c"
+ENV RUSTFLAGS="-L /Elkeid/plugins/scanner/lib/ -C target-feature=+crt-static -l ucontext -l c -D_FORTIFY_SOURCE=2 -Dfcntl64=fcntl"
 
-# RUN CC="x86_64-linux-musl-gcc" CXX="x86_64-linux-musl-c++" RUSTFLAGS='-C target-feature=+crt-static' cargo build --release --bin scanner_plugin --target x86_64-unknown-linux-musl
-RUN CC="x86_64-linux-musl-gcc" CXX="x86_64-linux-musl-c++" cargo build --release --bin scanner_plugin --target x86_64-unknown-linux-musl
+# 修复：编译命令添加CFLAGS/CXXFLAGS，确保C代码替换fcntl64
+RUN CC="x86_64-linux-musl-gcc" \
+    CXX="x86_64-linux-musl-c++" \
+    CFLAGS="-D_FORTIFY_SOURCE=2 -Dfcntl64=fcntl" \
+    CXXFLAGS="-D_FORTIFY_SOURCE=2 -Dfcntl64=fcntl" \
+    cargo build --release --bin scanner_plugin --target x86_64-unknown-linux-musl
 
 RUN mkdir /Elkeid/plugins/scanner/output
 RUN cp -r tools/* ./output/.
