@@ -11,17 +11,17 @@ ENV CXX="x86_64-linux-musl-c++ -U_FILE_OFFSET_BITS -U_LARGEFILE64_SOURCE"
 # 告诉Rust用musl链接器，适配libc crate的musl特性
 ENV CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_LINKER=x86_64-linux-musl-gcc
 
-# 2. 编译libiconv（musl标准，关键：添加--host指定musl平台）
+# 2. 编译libiconv（修复语法错误：确保每行参数以\结尾，无多余空格）
 RUN echo "===== 开始编译 libiconv.a/libcharset.a（musl 格式） =====" \
     && wget https://ftp.gnu.org/pub/gnu/libiconv/libiconv-1.17.tar.gz -O /tmp/libiconv-1.17.tar.gz \
     && tar -zxvf /tmp/libiconv-1.17.tar.gz -C /tmp \
     && cd /tmp/libiconv-1.17 \
     && ./configure \
-      --prefix=/tmp/libiconv_musl \
-      --host=${TARGET_ARCH}-linux-musl \  # 核心：强制用musl头文件/编译器
-      --enable-static=yes \
-      --enable-shared=no \
-      --disable-dependency-tracking \
+        --prefix=/tmp/libiconv_musl \
+        --host=${TARGET_ARCH}-linux-musl \
+        --enable-static=yes \
+        --enable-shared=no \
+        --disable-dependency-tracking \
     && make -j4 && make install \
     && cp /tmp/libiconv_musl/lib/libiconv.a /LibClamavDocker/lib/ \
     && cp /tmp/libiconv_musl/lib/libcharset.a /LibClamavDocker/lib/ \
@@ -33,7 +33,7 @@ RUN echo "===== 开始编译 libucontext.a（musl 格式） =====" \
     && wget https://mirror.ghproxy.com/https://github.com/kaniini/libucontext/archive/refs/tags/v1.2.tar.gz -O /tmp/libucontext-1.2.tar.gz \
     && tar -zxvf /tmp/libucontext-1.2.tar.gz -C /tmp \
     && cd /tmp/libucontext-1.2 \
-    && make -j4 CC=$CC CFLAGS="-fPIC -static" \  # 用全局musl编译器
+    && make -j4 CC=$CC CFLAGS="-fPIC -static" \
     && cp /tmp/libucontext-1.2/libucontext.a /LibClamavDocker/lib/ \
     && rm -rf /tmp/libucontext-1.2.tar.gz /tmp/libucontext-1.2 \
     && echo "===== libucontext.a 编译完成 ====="
@@ -52,8 +52,7 @@ RUN rustup target add x86_64-unknown-linux-musl
 ENV RUSTFLAGS="-L /Elkeid/plugins/scanner/lib/ -C target-feature=+crt-static -l ucontext -l c"
 
 # 7. 核心：清空缓存 + 编译项目（根源修复fcntl64问题）
-# 前提：你已在Cargo.toml中给libc添加musl特性（libc = { version = "0.2", features = ["musl"] }）
-RUN cargo clean \  # 清空旧的glibc编译缓存
+RUN cargo clean \
     && cargo build --release --bin scanner_plugin --target x86_64-unknown-linux-musl
 
 # 8. 打包输出（保留原有逻辑）
