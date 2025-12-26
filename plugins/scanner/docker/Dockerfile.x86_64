@@ -24,8 +24,8 @@ RUN echo "===== 开始编译 libiconv.a/libcharset.a（musl 格式） =====" \
     && rm -rf /tmp/libiconv-1.17.tar.gz /tmp/libiconv-1.17 /tmp/libiconv_musl \
     && echo "===== libiconv.a/libcharset.a 编译完成 ====="
 
-# 新增3：指定Rust编译器查找静态库的路径（解决编译器找不到libiconv的问题）
-ENV RUSTFLAGS="-L /LibClamavDocker/lib/ ${RUSTFLAGS}"
+# 3. 修正全局RUSTFLAGS：链接ucontext库+指定库路径+静态编译（核心修复）
+ENV RUSTFLAGS="-L /LibClamavDocker/lib/ -C target-feature=+crt-static -l ucontext -l c"
 
 RUN rm -rf clamav clamav-mussels-cookbook lib include
 RUN mv /LibClamavDocker/clamav /Elkeid/plugins/scanner/.
@@ -34,7 +34,8 @@ RUN mv /LibClamavDocker/lib /Elkeid/plugins/scanner/.
 RUN mv /LibClamavDocker/include /Elkeid/plugins/scanner/.
 
 RUN rustup target add x86_64-unknown-linux-musl
-RUN CC="x86_64-linux-musl-gcc" CXX="x86_64-linux-musl-c++" RUSTFLAGS='-C target-feature=+crt-static' cargo build --release --bin scanner_plugin --target x86_64-unknown-linux-musl
+# RUN CC="x86_64-linux-musl-gcc" CXX="x86_64-linux-musl-c++" RUSTFLAGS='-C target-feature=+crt-static' cargo build --release --bin scanner_plugin --target x86_64-unknown-linux-musl
+RUN CC="x86_64-linux-musl-gcc" CXX="x86_64-linux-musl-c++" cargo build --release --bin scanner_plugin --target x86_64-unknown-linux-musl
 
 RUN mkdir /Elkeid/plugins/scanner/output
 RUN cp -r tools/* ./output/.
