@@ -39,7 +39,8 @@ hex = "0.4"
 nix = "0.24"
 
 rust-crypto = "0.2"
-libc = "0.2"
+
+libc = { version = "0.2", features = ["musl"] }
 
 fs2 = "0.4.3"
 
