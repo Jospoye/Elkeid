@@ -8,8 +8,6 @@ on:
     - 2.0/scanner
     paths:
     - plugins/scanner/**
-  # 已添加的手动触发规则
-  workflow_dispatch:
 jobs:
 
   build:
