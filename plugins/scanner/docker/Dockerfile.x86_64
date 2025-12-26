@@ -30,7 +30,7 @@ RUN echo "===== 开始编译 libiconv.a/libcharset.a（musl 格式） =====" \
 
 # 3. 编译libucontext（musl格式，优化：用镜像源加速下载）
 RUN echo "===== 开始编译 libucontext.a（musl 格式） =====" \
-    && wget https://mirror.ghproxy.com/https://github.com/kaniini/libucontext/archive/refs/tags/v1.2.tar.gz -O /tmp/libucontext-1.2.tar.gz \
+    && wget https://github.com/kaniini/libucontext/archive/refs/tags/v1.2.tar.gz -O /tmp/libucontext-1.2.tar.gz \
     && tar -zxvf /tmp/libucontext-1.2.tar.gz -C /tmp \
     && cd /tmp/libucontext-1.2 \
     && make -j4 CC=$CC CFLAGS="-fPIC -static" \
